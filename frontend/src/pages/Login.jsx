@@ -4,6 +4,34 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const normalizeRole = (role) => {
+  switch (role) {
+    case 'ROLE_ADMIN':
+    case 'ADMIN':
+      return 'ADMIN';
+    case 'ROLE_CANDIDATE':
+    case 'CANDIDATE':
+      return 'CANDIDATE';
+    case 'ROLE_USER':
+    case 'ROLE_VOTER':
+    case 'VOTER':
+    default:
+      return 'VOTER';
+  }
+};
+
+const roleToDashboard = (role) => {
+  switch (normalizeRole(role)) {
+    case 'ADMIN':
+      return '/admin/dashboard';
+    case 'CANDIDATE':
+      return '/candidate/dashboard';
+    case 'VOTER':
+    default:
+      return '/voter/dashboard';
+  }
+};
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,10 +41,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login({ email, password });
-      navigate('/dashboard');
+      const auth = await login({ email, password });
+      navigate(roleToDashboard(auth.role));
     } catch (err) {
-      alert('Login failed');
+      alert(err.response?.data?.message || 'Login failed');
     }
   };
 
@@ -67,7 +95,14 @@ const Login = () => {
         </form>
 
         <p className="text-center mt-8 text-sm text-primary-100">
-          New voter? <a href="/register" className="font-bold hover:underline cursor-pointer" onClick={() => navigate('/register')}>Register here</a>
+          New user?{' '}
+          <button
+            type="button"
+            className="font-bold hover:underline cursor-pointer"
+            onClick={() => navigate('/register')}
+          >
+            Register here
+          </button>
         </p>
       </motion.div>
     </div>

@@ -1,40 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, User, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from '../api/axios';
 
 const UserDashboard = () => {
-  const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [voted, setVoted] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+  const [candidates, setCandidates] = useState([]);
 
   useEffect(() => {
-    setTimeout(() => {
-      setCandidates([
-        { id: 1, name: 'Candidate A', party: 'Alpha Party', bio: 'Visionary leadership for a digital future.' },
-        { id: 2, name: 'Candidate B', party: 'Beta Union', bio: 'Sustainable growth and community focus.' },
-        { id: 3, name: 'Candidate C', party: 'Gamma Group', bio: 'Economic stability and innovation.' },
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchDashboardData();
   }, []);
 
-  const handleVote = (id) => {
+  const fetchDashboardData = async () => {
+    try {
+      const [profileResponse, candidatesResponse] = await Promise.all([
+        axios.get('/api/auth/me'),
+        axios.get('/api/candidates')
+      ]);
+
+      setUserInfo(profileResponse.data);
+      setVoted(Boolean(profileResponse.data.hasVoted));
+      setCandidates(candidatesResponse.data);
+    } catch (err) {
+      console.error('Error fetching dashboard data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVote = async (id) => {
     if (window.confirm('Are you sure you want to cast your vote?')) {
-      setVoted(true);
+      try {
+        await axios.post('/api/user/vote', { candidate_id: id });
+        setVoted(true);
+        alert('Vote cast successfully!');
+      } catch (err) {
+        alert(err.response?.data || 'Failed to cast vote');
+      }
     }
   };
 
   if (loading) return (
     <div className="h-96 flex flex-col items-center justify-center text-slate-400">
       <Loader2 className="animate-spin mb-4" size={48} />
-      <p>Fetching candidates...</p>
+      <p>Loading dashboard...</p>
     </div>
   );
 
   return (
     <div className="max-w-6xl mx-auto">
       <header className="mb-10">
-        <h1 className="text-3xl font-bold text-dark-900 dark:text-white">Cast Your Vote</h1>
+        <h1 className="text-3xl font-bold text-dark-900 dark:text-white">Welcome, {userInfo?.name}</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-2">Every vote counts towards a better future. Choose wisely.</p>
       </header>
 
@@ -61,7 +79,7 @@ const UserDashboard = () => {
               </div>
               <h3 className="text-xl font-bold text-dark-900 dark:text-white">{candidate.name}</h3>
               <p className="text-primary-600 dark:text-primary-400 font-semibold text-sm mb-4 uppercase tracking-wider">{candidate.party}</p>
-              <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 flex-1 italic leading-relaxed">"{candidate.bio}"</p>
+              <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 flex-1 italic leading-relaxed">"{candidate.description}"</p>
               <button 
                 onClick={() => handleVote(candidate.id)}
                 className="w-full bg-dark-900 dark:bg-primary-600 text-white font-bold py-3 rounded-xl hover:bg-primary-600 dark:hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/10"
@@ -77,4 +95,3 @@ const UserDashboard = () => {
 };
 
 export default UserDashboard;
-

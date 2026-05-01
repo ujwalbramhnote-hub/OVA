@@ -1,14 +1,50 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Users, Award } from 'lucide-react';
-
-const data = [
-  { name: 'Candidate A', votes: 450, color: '#6366f1' },
-  { name: 'Candidate B', votes: 320, color: '#10b981' },
-  { name: 'Candidate C', votes: 280, color: '#f59e0b' },
-];
+import { TrendingUp, Users, Award, Loader2 } from 'lucide-react';
+import axios from '../api/axios';
 
 const Results = () => {
+  const [data, setData] = useState([]);
+  const [stats, setStats] = useState({ totalVotes: 0, leader: 'N/A', lead: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchResults();
+  }, []);
+
+  const fetchResults = async () => {
+    try {
+      const response = await axios.get('/api/results');
+      const chartData = response.data.map((candidate, index) => ({
+        name: candidate.name,
+        votes: candidate.totalVotes ?? 0,
+        color: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'][index % 6]
+      }));
+
+      const sorted = [...response.data].sort((a, b) => (b.totalVotes ?? 0) - (a.totalVotes ?? 0));
+      const leadingCandidate = sorted[0]?.name || 'N/A';
+      const totalVotes = response.data.reduce((sum, candidate) => sum + (candidate.totalVotes ?? 0), 0);
+
+      setData(chartData);
+      setStats({
+        totalVotes,
+        leader: leadingCandidate,
+        lead: sorted.length > 1 ? (sorted[0].totalVotes ?? 0) - (sorted[1].totalVotes ?? 0) : 0
+      });
+    } catch (err) {
+      console.error('Error fetching results', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="h-96 flex flex-col items-center justify-center text-slate-400">
+      <Loader2 className="animate-spin mb-4" size={48} />
+      <p>Fetching live results...</p>
+    </div>
+  );
+
   return (
     <div className="space-y-8">
       <header>
@@ -17,9 +53,9 @@ const Results = () => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard icon={<Users className="text-blue-600" />} label="Total Voters" value="1,200" sub="Registered" />
-        <StatCard icon={<TrendingUp className="text-green-600" />} label="Total Votes" value="1,050" sub="87% Turnout" />
-        <StatCard icon={<Award className="text-amber-600" />} label="Leader" value="Candidate A" sub="+130 votes lead" />
+        <StatCard icon={<Users className="text-blue-600" />} label="Registered Voters" value="N/A" sub="Live Sync" />
+        <StatCard icon={<TrendingUp className="text-green-600" />} label="Total Votes Cast" value={stats.totalVotes.toString()} sub="Verified" />
+        <StatCard icon={<Award className="text-amber-600" />} label="Current Leader" value={stats.leader} sub="Leading" />
       </div>
 
       <div className="bg-white dark:bg-dark-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm transition-colors">
