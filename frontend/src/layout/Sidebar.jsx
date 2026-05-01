@@ -1,14 +1,31 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Vote, BarChart3, Users, LogOut } from 'lucide-react';
+import { LayoutDashboard, Vote, BarChart3, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const normalizeRole = (role) => {
+  switch (role) {
+    case 'ROLE_ADMIN':
+    case 'ADMIN':
+      return 'ADMIN';
+    case 'ROLE_CANDIDATE':
+    case 'CANDIDATE':
+      return 'CANDIDATE';
+    case 'ROLE_USER':
+    case 'ROLE_VOTER':
+    case 'VOTER':
+    default:
+      return 'VOTER';
+  }
+};
 
 const Sidebar = ({ isOpen }) => {
   const { user, logout } = useAuth();
-  const role = user?.role;
+  const role = normalizeRole(user?.role);
+  const dashboardPath = role === 'ADMIN' ? '/admin/dashboard' : role === 'CANDIDATE' ? '/candidate/dashboard' : '/voter/dashboard';
 
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { name: 'Dashboard', icon: LayoutDashboard, path: dashboardPath },
     { name: 'Results', icon: BarChart3, path: '/results' },
   ];
 
