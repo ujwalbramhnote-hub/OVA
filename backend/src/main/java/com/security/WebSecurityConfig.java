@@ -84,6 +84,7 @@ public class WebSecurityConfig {
                         auth.requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                                 .requestMatchers("/api/auth/me").authenticated()
+                                .requestMatchers("/uploads/**").permitAll()
                                 .requestMatchers("/api/candidates").permitAll()
                                 .requestMatchers("/api/results").permitAll()
                                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN")

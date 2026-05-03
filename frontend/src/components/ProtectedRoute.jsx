@@ -20,7 +20,13 @@ const normalizeRole = (role) => {
 const ProtectedRoute = ({ allowedRoles }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-dark-900 dark:text-white text-lg">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="bg-app flex min-h-screen items-center justify-center text-primary-theme">
+        Loading...
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   const role = normalizeRole(user.role);
   if (allowedRoles && !allowedRoles.includes(role)) {

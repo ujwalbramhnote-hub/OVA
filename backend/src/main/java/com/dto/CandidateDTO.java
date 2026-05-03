@@ -10,4 +10,5 @@ public class CandidateDTO {
     private String description;
     private String manifesto;
     private String imageUrl;
+    private String profileImageUrl;
 }

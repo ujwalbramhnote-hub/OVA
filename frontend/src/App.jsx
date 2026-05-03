@@ -3,11 +3,15 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './layout/MainLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import UserDashboard from './pages/UserDashboard';
+import Dashboard from './pages/Dashboard';
+import LiveResults from './pages/LiveResults';
 import CandidateDashboard from './pages/CandidateDashboard';
 import AdminDashboard from './pages/AdminDashboard';
-import Results from './pages/Results';
+import AuditLog from './pages/AuditLog';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const normalizeRole = (role) => {
   switch (role) {
@@ -41,33 +45,38 @@ const DashboardRedirect = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+      <ErrorBoundary>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-          <Route element={<MainLayout />}>
-            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'VOTER', 'CANDIDATE']} />}>
-              <Route path="/dashboard" element={<DashboardRedirect />} />
-              <Route path="/results" element={<Results />} />
+            <Route element={<MainLayout />}>
+              <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'VOTER', 'CANDIDATE']} />}>
+                <Route path="/dashboard" element={<DashboardRedirect />} />
+                <Route path="/results" element={<LiveResults />} />
+                <Route path="/audit-log" element={<AuditLog />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+
+              <Route element={<ProtectedRoute allowedRoles={['VOTER']} />}>
+                <Route path="/voter/dashboard" element={<Dashboard />} />
+              </Route>
+
+              <Route element={<ProtectedRoute allowedRoles={['CANDIDATE']} />}>
+                <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
+              </Route>
+
+              <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              </Route>
+
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Route>
-
-            <Route element={<ProtectedRoute allowedRoles={['VOTER']} />}>
-              <Route path="/voter/dashboard" element={<UserDashboard />} />
-            </Route>
-
-            <Route element={<ProtectedRoute allowedRoles={['CANDIDATE']} />}>
-              <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
-            </Route>
-
-            <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            </Route>
-
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          </Route>
-        </Routes>
-      </Router>
+          </Routes>
+        </Router>
+      </ErrorBoundary>
     </AuthProvider>
   );
 }

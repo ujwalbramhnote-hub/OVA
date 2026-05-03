@@ -10,5 +10,6 @@ public class CandidateProfileDto {
     private String description;
     private String manifesto;
     private String imageUrl;
+    private String profileImageUrl;
     private Integer totalVotes;
 }
