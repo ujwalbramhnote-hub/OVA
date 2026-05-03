@@ -8,17 +8,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f5f7ff',
-          100: '#ebf0fe',
-          200: '#ced9fd',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-        },
-        dark: {
-          800: '#1e293b',
-          900: '#0f172a',
+        brand: {
+          bg: '#0E0F11',
+          sidebar: '#16181C',
+          card: '#1E2126',
+          border: '#2E333B',
+          text: '#E8EAED',
+          muted: '#9AA0AC',
+          subtext: '#5A6270',
+          gold: '#D4A853',
+          goldHover: '#F0C97A',
+          green: '#52A876',
+          blue: '#4A80C4'
         }
       },
     },

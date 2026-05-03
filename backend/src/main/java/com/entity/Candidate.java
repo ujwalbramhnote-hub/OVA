@@ -29,6 +29,8 @@ public class Candidate {
 
     private String imageUrl;
 
+    private String profileImageUrl;
+
     private Integer voteCount = 0;
 
     @OneToOne(fetch = FetchType.LAZY)

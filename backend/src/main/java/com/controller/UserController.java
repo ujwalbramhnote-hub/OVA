@@ -5,6 +5,7 @@ import com.dto.CandidateResultDto;
 import com.dto.MessageResponse;
 import com.dto.UserDTO;
 import com.security.services.UserDetailsImpl;
+import com.service.AuditService;
 import com.service.CandidateService;
 import com.service.UserService;
 import com.service.VoteService;
@@ -24,6 +25,8 @@ public class UserController {
     private UserService userService;
     @Autowired
     private VoteService voteService;
+    @Autowired
+    private AuditService auditService;
 
     @GetMapping("/candidates")
     public ResponseEntity<List<CandidateDTO>> getAllCandidates() {
@@ -45,8 +48,24 @@ public class UserController {
         try {
             Long candidateId = request.get("candidate_id");
             voteService.castVote(userDetails.getId(), candidateId);
+            auditService.recordEventSafely(
+                    "vote_cast",
+                    "candidate_id=" + candidateId,
+                    "Vote cast successfully",
+                    "success",
+                    userDetails.getEmail(),
+                    userDetails.getRole()
+            );
             return ResponseEntity.ok(new MessageResponse("Vote cast successfully!"));
         } catch (Exception e) {
+            auditService.recordEventSafely(
+                    "vote_failed",
+                    "candidate_id=" + request.get("candidate_id"),
+                    e.getMessage(),
+                    "error",
+                    userDetails == null ? "anonymous" : userDetails.getEmail(),
+                    userDetails == null ? "UNKNOWN" : userDetails.getRole()
+            );
             return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
         }
     }

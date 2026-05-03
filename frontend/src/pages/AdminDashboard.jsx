@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Vote, Trash2, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Loader2, Shield, Users, Vote, Trash2, Sparkles, BarChart3, BadgeCheck } from 'lucide-react';
 import axios from '../api/axios';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import { resolveImageSrc } from '../utils/image';
+import { fadeIn, slideUp, staggerContainer } from '../utils/animations';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -10,9 +14,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
@@ -21,9 +23,9 @@ const AdminDashboard = () => {
         axios.get('/api/candidates'),
         axios.get('/api/admin/results')
       ]);
-      setUsers(usersRes.data);
-      setCandidates(candidatesRes.data);
-      setResults(resultsRes.data);
+      setUsers(usersRes.data || []);
+      setCandidates(candidatesRes.data || []);
+      setResults(resultsRes.data || []);
     } catch (err) {
       console.error('Error fetching admin data', err);
     } finally {
@@ -32,142 +34,211 @@ const AdminDashboard = () => {
   };
 
   const deleteUser = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await axios.delete(`/api/admin/users/${id}`);
-        setUsers(users.filter(u => u.id !== id));
-      } catch (err) {
-        alert('Failed to delete user');
-      }
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await axios.delete(`/api/admin/users/${id}`);
+      setUsers((current) => current.filter((user) => user.id !== id));
+    } catch {
+      alert('Failed to delete user');
     }
   };
 
   const deleteCandidate = async (id) => {
-    if (window.confirm('Are you sure you want to delete this candidate?')) {
-      try {
-        await axios.delete(`/api/admin/candidates/${id}`);
-        setCandidates(candidates.filter(candidate => candidate.id !== id));
-      } catch (err) {
-        alert('Failed to delete candidate');
-      }
+    if (!window.confirm('Are you sure you want to delete this candidate?')) return;
+    try {
+      await axios.delete(`/api/admin/candidates/${id}`);
+      setCandidates((current) => current.filter((candidate) => candidate.id !== id));
+    } catch {
+      alert('Failed to delete candidate');
     }
   };
 
-  if (loading) return (
-    <div className="h-96 flex flex-col items-center justify-center text-slate-400">
-      <Loader2 className="animate-spin mb-4" size={48} />
-      <p>Loading admin console...</p>
-    </div>
-  );
+  const overview = useMemo(() => {
+    const totalVotes = results.reduce((sum, candidate) => sum + (candidate.totalVotes ?? 0), 0);
+    const leader = [...results].sort((a, b) => (b.totalVotes ?? 0) - (a.totalVotes ?? 0))[0] || null;
+    return { totalVotes, leader };
+  }, [results]);
+
+  if (loading) return <AdminSkeleton />;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold text-dark-900 dark:text-white">Admin Console</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">Manage users, monitor aggregate vote counts, and oversee system integrity.</p>
-      </header>
+    <motion.div initial="hidden" animate="visible" variants={fadeIn} className="space-y-6">
+      <motion.section variants={slideUp} className="overflow-hidden rounded-[1.75rem] border border-theme bg-elevated">
+        <div className="grid gap-0 lg:grid-cols-[1.25fr_0.75fr]">
+          <div className="p-6 md:p-8">
+            <p className="inline-flex items-center gap-2 rounded-full border border-[color:var(--accent)]/20 bg-[color:var(--accent)]/8 px-3 py-1 text-xs font-medium text-accent-hover-theme">
+              <Sparkles size={14} />
+              Admin control center
+            </p>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-primary-theme md:text-4xl">
+              Admin Console
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-secondary-theme md:text-base">
+              Monitor users, candidates, and aggregate results in a consistent dark dashboard with gold-accent emphasis.
+            </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {results.map((candidate) => (
-          <StatCard
-            key={candidate.candidateId}
-            label={candidate.name}
-            value={candidate.totalVotes ?? 0}
-            color="bg-primary-500"
-            subLabel={candidate.party}
-          />
-        ))}
-      </div>
-
-      <div className="bg-white dark:bg-dark-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-        <div className="flex border-b border-slate-100 dark:border-slate-700">
-          <TabButton active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<Users size={18}/>} label="Users" />
-          <TabButton active={activeTab === 'candidates'} onClick={() => setActiveTab('candidates')} icon={<Vote size={18}/>} label="Candidates" />
-        </div>
-
-        <div className="p-6">
-          {activeTab === 'users' ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-slate-400 text-sm uppercase tracking-wider">
-                    <th className="pb-4 font-semibold">Name</th>
-                    <th className="pb-4 font-semibold">Email</th>
-                    <th className="pb-4 font-semibold">Age</th>
-                    <th className="pb-4 font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                  {users.map(user => (
-                    <tr key={user.id} className="text-dark-900 dark:text-slate-300">
-                      <td className="py-4">{user.name}</td>
-                      <td className="py-4">{user.email}</td>
-                      <td className="py-4">{user.age}</td>
-                      <td className="py-4">
-                        <button onClick={() => deleteUser(user.id)} className="text-rose-500 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Pill icon={<Shield size={14} />} label="Protected control surface" />
+              <Pill icon={<BarChart3 size={14} />} label={`Votes: ${overview.totalVotes}`} accent />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-slate-400 text-sm uppercase tracking-wider">
-                    <th className="pb-4 font-semibold">Name</th>
-                    <th className="pb-4 font-semibold">Party</th>
-                    <th className="pb-4 font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                  {candidates.map(candidate => (
-                    <tr key={candidate.id} className="text-dark-900 dark:text-slate-300">
-                      <td className="py-4">{candidate.name}</td>
-                      <td className="py-4">{candidate.party}</td>
-                      <td className="py-4">
-                        <button onClick={() => deleteCandidate(candidate.id)} className="text-rose-500 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          </div>
+
+          <div className="border-t border-theme bg-surface p-6 lg:border-l lg:border-t-0">
+            <div className="rounded-[1.35rem] border border-theme bg-elevated p-5">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-theme">System summary</p>
+              <div className="mt-5 space-y-3">
+                <MetricLine label="Registered users" value={users.length} />
+                <MetricLine label="Candidates" value={candidates.length} />
+                <MetricLine label="Leading candidate" value={overview.leader?.name || 'N/A'} />
+              </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
-  </div>
-);
+      </motion.section>
+
+      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={<Users size={18} />} label="Users" value={String(users.length)} />
+        <StatCard icon={<Vote size={18} />} label="Candidates" value={String(candidates.length)} />
+        <StatCard icon={<BadgeCheck size={18} />} label="Votes cast" value={String(overview.totalVotes)} accent />
+        <StatCard icon={<BarChart3 size={18} />} label="Leader" value={overview.leader?.name || 'N/A'} />
+      </motion.div>
+
+      <motion.section variants={slideUp}>
+        <Card className="overflow-hidden">
+          <div className="flex flex-col border-b border-theme md:flex-row">
+            <TabButton active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<Users size={18} />} label="Users" />
+            <TabButton active={activeTab === 'candidates'} onClick={() => setActiveTab('candidates')} icon={<Vote size={18} />} label="Candidates" />
+          </div>
+
+          <div className="p-5 md:p-6">
+            <AnimatePresence mode="wait">
+              {activeTab === 'users' ? (
+                <motion.div key="users-table" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="overflow-x-auto">
+                  <table className="min-w-full text-left">
+                    <thead>
+                      <tr className="border-b border-theme text-xs uppercase tracking-[0.22em] text-muted-theme">
+                        <th className="px-4 pb-4 font-semibold">Name</th>
+                        <th className="px-4 pb-4 font-semibold">Email</th>
+                        <th className="px-4 pb-4 font-semibold">Age</th>
+                        <th className="px-4 pb-4 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user, index) => (
+                        <motion.tr key={user.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, delay: index * 0.03 }} className="border-b border-theme text-primary-theme hover:bg-surface">
+                          <td className="px-4 py-4">{user.name}</td>
+                          <td className="px-4 py-4 text-secondary-theme">{user.email}</td>
+                          <td className="px-4 py-4 text-secondary-theme">{user.age}</td>
+                          <td className="px-4 py-4">
+                            <Button variant="ghost" className="px-3 py-2 text-[#E5A3A3]" onClick={() => deleteUser(user.id)}>
+                              <Trash2 size={16} />
+                              Remove
+                            </Button>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </motion.div>
+              ) : (
+                <motion.div key="candidates-table" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="overflow-x-auto">
+                  <table className="min-w-full text-left">
+                    <thead>
+                      <tr className="border-b border-theme text-xs uppercase tracking-[0.22em] text-muted-theme">
+                        <th className="px-4 pb-4 font-semibold">Image</th>
+                        <th className="px-4 pb-4 font-semibold">Name</th>
+                        <th className="px-4 pb-4 font-semibold">Party</th>
+                        <th className="px-4 pb-4 font-semibold">Votes</th>
+                        <th className="px-4 pb-4 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidates.map((candidate, index) => {
+                        const voteCount = results.find((entry) => entry.name === candidate.name)?.totalVotes ?? 0;
+                        return (
+                          <motion.tr key={candidate.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, delay: index * 0.03 }} className="border-b border-theme text-primary-theme hover:bg-surface">
+                            <td className="px-4 py-4">
+                              <div className="h-12 w-12 overflow-hidden rounded-2xl border border-theme bg-surface">
+                                <img src={resolveImageSrc(candidate.profileImageUrl || candidate.imageUrl)} alt={candidate.name} className="h-full w-full object-cover" />
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">{candidate.name}</td>
+                            <td className="px-4 py-4 text-secondary-theme">{candidate.party}</td>
+                            <td className="px-4 py-4 text-accent-hover-theme">{voteCount}</td>
+                            <td className="px-4 py-4">
+                              <Button variant="ghost" className="px-3 py-2 text-[#E5A3A3]" onClick={() => deleteCandidate(candidate.id)}>
+                                <Trash2 size={16} />
+                                Remove
+                              </Button>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </Card>
+      </motion.section>
+    </motion.div>
+  );
 };
 
-const StatCard = ({ label, value, color, subLabel }) => (
-  <div className="bg-white dark:bg-dark-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm transition-colors">
-    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{label}</p>
-    <div className="flex items-end gap-3 mt-1">
-      <h4 className="text-3xl font-bold text-dark-900 dark:text-white">{value}</h4>
-      <div className={`h-2 w-12 rounded-full mb-2 ${color}`} />
+const AdminSkeleton = () => (
+  <div className="space-y-6">
+    <div className="h-[220px] animate-pulse rounded-[1.75rem] border border-theme bg-elevated" />
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="h-[126px] animate-pulse rounded-[1.5rem] border border-theme bg-elevated" />
+      ))}
     </div>
-    {subLabel && <p className="text-xs text-slate-400 mt-2 uppercase tracking-wider">{subLabel}</p>}
+    <div className="h-[420px] animate-pulse rounded-[1.75rem] border border-theme bg-elevated" />
   </div>
+);
+
+const StatCard = ({ icon, label, value, accent = false }) => (
+  <Card className={`p-5 ${accent ? 'border-[color:var(--accent)]/30' : ''}`}>
+    <div className="flex items-start gap-3">
+      <div className={`rounded-xl p-2.5 ${accent ? 'bg-[color:var(--accent)]/12 text-accent-hover-theme' : 'bg-surface text-secondary-theme'}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs uppercase tracking-[0.22em] text-muted-theme">{label}</p>
+        <p className="mt-2 text-lg font-semibold text-primary-theme">{value}</p>
+      </div>
+    </div>
+  </Card>
 );
 
 const TabButton = ({ active, onClick, icon, label }) => (
-  <button 
+  <motion.button
+    type="button"
     onClick={onClick}
-    className={`flex items-center gap-2 px-8 py-4 font-bold transition-all border-b-2 ${
-      active 
-      ? 'border-primary-600 text-primary-600 bg-primary-50/30' 
-      : 'border-transparent text-slate-400 hover:text-slate-600'
+    whileHover={{ y: -1 }}
+    whileTap={{ scale: 0.98 }}
+    className={`flex items-center gap-2 border-b-2 px-6 py-4 text-sm font-semibold transition-colors md:px-8 ${
+      active ? 'border-[color:var(--accent)] text-accent-hover-theme' : 'border-transparent text-secondary-theme hover:text-primary-theme'
     }`}
   >
     {icon}
     {label}
-  </button>
+  </motion.button>
+);
+
+const Pill = ({ icon, label, accent = false }) => (
+  <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${accent ? 'border-[color:var(--accent)]/30 bg-[color:var(--accent)]/10 text-accent-hover-theme' : 'border-theme bg-surface text-secondary-theme'}`}>
+    {icon}
+    {label}
+  </span>
+);
+
+const MetricLine = ({ label, value }) => (
+  <div className="flex items-center justify-between gap-4 rounded-xl border border-theme bg-surface px-4 py-3">
+    <span className="text-sm text-secondary-theme">{label}</span>
+    <span className="text-sm font-medium text-primary-theme">{value}</span>
+  </div>
 );
 
 export default AdminDashboard;

@@ -1,13 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { User, Mail, Lock, Calendar, ArrowRight, ShieldCheck, Megaphone, Image } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ArrowRight, Calendar, Image, Lock, Mail, Megaphone, ShieldCheck, User, Users, Vote } from 'lucide-react';
+import { motion } from 'framer-motion';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import ElectionTicker from '../components/election/ElectionTicker';
 
 const DEFAULT_ROLE = 'VOTER';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,133 +24,153 @@ const Register = () => {
     manifesto: '',
     imageUrl: ''
   });
-
-  const { register } = useAuth();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const isCandidate = useMemo(() => formData.role === 'CANDIDATE', [formData.role]);
+  const handleChange = (event) => setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     try {
       await register(formData);
-      alert('Account created! Please login.');
-      navigate('/login');
+      navigate('/login', { replace: true });
     } catch (err) {
-      alert(err.response?.data?.message || err.response?.data || 'Registration failed');
+      setError(err.response?.data?.message || err.response?.data || 'Registration failed.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.18),_transparent_35%),linear-gradient(135deg,_#081120,_#0f172a_55%,_#111827)] p-4 transition-colors duration-300">
+    <div className="bg-app relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_color-mix(in_srgb,var(--accent)_11%,transparent),_transparent_28%),radial-gradient(circle_at_bottom_right,_color-mix(in_srgb,var(--accent-2)_11%,transparent),_transparent_24%)]" />
+
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl bg-white/10 backdrop-blur-xl border border-white/15 p-8 md:p-10 rounded-[2rem] shadow-2xl text-white"
+        className="relative grid w-full max-w-6xl gap-6 lg:grid-cols-[1fr_0.92fr]"
       >
-        <div className="mb-8">
-          <p className="text-sm uppercase tracking-[0.3em] text-cyan-300/80 mb-3">Online Voting Application</p>
-          <h1 className="text-3xl md:text-4xl font-bold">Create your account</h1>
-          <p className="text-slate-300 mt-3">Register as a voter or candidate. Admin accounts are not public.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputGroup icon={<User size={18} />} name="name" type="text" placeholder="Full Name" value={formData.name} onChange={handleChange} required />
-            <InputGroup icon={<Mail size={18} />} name="email" type="email" placeholder="Email Address" value={formData.email} onChange={handleChange} required />
+        <Card className="p-6 md:p-8">
+          <div className="mb-8">
+            <p className="text-xs uppercase tracking-[0.24em] text-accent-hover-theme">VoteChain</p>
+            <h1 className="mt-3 text-3xl font-semibold text-primary-theme">Create account</h1>
+            <p className="mt-2 text-sm leading-6 text-secondary-theme">Register as a voter or candidate. Admin registration remains disabled.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputGroup icon={<Calendar size={18} />} name="age" type="number" placeholder="Age" value={formData.age} onChange={handleChange} required />
-            <div className="relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-cyan-300 transition-colors">
-                <ShieldCheck size={18} />
-              </div>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-cyan-400/30 transition-all text-white"
-              >
-                <option value="VOTER" className="text-slate-900">Voter</option>
-                <option value="CANDIDATE" className="text-slate-900">Candidate</option>
-              </select>
+          {error ? <div className="mb-5 rounded-xl border border-[#8C4E4E] bg-[#2A1717] px-4 py-3 text-sm text-accent-hover-theme">{error}</div> : null}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input label="Full name" name="name" value={formData.name} onChange={handleChange} leftIcon={<User size={16} />} required />
+              <Input label="Email address" type="email" name="email" value={formData.email} onChange={handleChange} leftIcon={<Mail size={16} />} required />
+              <Input label="Age" type="number" name="age" value={formData.age} onChange={handleChange} leftIcon={<Calendar size={16} />} required />
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-primary-theme">Role</span>
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-muted-theme">
+                    <ShieldCheck size={16} />
+                  </span>
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-theme bg-elevated px-4 py-3 pl-10 text-sm text-primary-theme outline-none transition-colors focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-2)]/30"
+                  >
+                    <option value="VOTER">Voter</option>
+                    <option value="CANDIDATE">Candidate</option>
+                  </select>
+                </div>
+              </label>
             </div>
+
+            <Input label="Password" type="password" name="password" value={formData.password} onChange={handleChange} leftIcon={<Lock size={16} />} required />
+
+            {isCandidate ? (
+              <div className="rounded-[1.4rem] border border-theme bg-surface p-4 md:p-5">
+                <div className="mb-4 flex items-center gap-2 text-accent-hover-theme">
+                  <Megaphone size={16} />
+                  <span className="text-sm font-medium">Candidate profile</span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input label="Party / Alliance" name="party" value={formData.party} onChange={handleChange} leftIcon={<ShieldCheck size={16} />} required />
+                  <Input label="Image URL" name="imageUrl" value={formData.imageUrl} onChange={handleChange} leftIcon={<Image size={16} />} />
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <TextArea label="Short description" name="description" value={formData.description} onChange={handleChange} />
+                  <TextArea label="Manifesto" name="manifesto" value={formData.manifesto} onChange={handleChange} />
+                </div>
+              </div>
+            ) : null}
+
+            <Button type="submit" className="mt-2 w-full py-3.5" disabled={loading}>
+              {loading ? 'Creating account...' : 'Create account'}
+              <ArrowRight size={16} />
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-secondary-theme">
+            Already have an account?{' '}
+            <button type="button" onClick={() => navigate('/login')} className="text-accent-hover-theme hover:text-accent-theme">
+              Sign in
+            </button>
+          </p>
+        </Card>
+
+        <Card className="overflow-hidden p-6 md:p-8">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-muted-theme">
+            <Users size={14} />
+            Election registration
+          </div>
+          <h2 className="mt-4 text-2xl font-semibold text-primary-theme">Built for voters and campaigns.</h2>
+          <p className="mt-2 text-sm leading-6 text-secondary-theme">
+            Registration follows a clear flow so the public ballot, candidate profile, and campaign messaging stay easy to understand.
+          </p>
+
+          <div className="mt-6 space-y-3">
+            <InfoRow icon={<Vote size={15} />} title="Vote-ready accounts" text="A voter profile is enough to participate in the election." />
+            <InfoRow icon={<Megaphone size={15} />} title="Candidate promotion" text="Campaign details and manifestos are surfaced in the dashboard cards." />
+            <InfoRow icon={<ShieldCheck size={15} />} title="Role-based access" text="The registration flow respects voter and candidate permissions." />
           </div>
 
-          <InputGroup icon={<Lock size={18} />} name="password" type="password" placeholder="Create Password" value={formData.password} onChange={handleChange} required />
-
-          {isCandidate && (
-            <div className="space-y-4 rounded-2xl border border-white/10 bg-black/10 p-4">
-              <div className="flex items-center gap-2 text-cyan-200 font-semibold">
-                <Megaphone size={18} />
-                Candidate profile
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputGroup icon={<ShieldCheck size={18} />} name="party" type="text" placeholder="Party / Alliance" value={formData.party} onChange={handleChange} required />
-                <InputGroup icon={<Image size={18} />} name="imageUrl" type="url" placeholder="Image URL (optional)" value={formData.imageUrl} onChange={handleChange} />
-              </div>
-              <TextAreaGroup
-                icon={<User size={18} />}
-                name="description"
-                placeholder="Short profile description"
-                value={formData.description}
-                onChange={handleChange}
-              />
-              <TextAreaGroup
-                icon={<Megaphone size={18} />}
-                name="manifesto"
-                placeholder="Manifesto / campaign statement"
-                value={formData.manifesto}
-                onChange={handleChange}
-              />
-            </div>
-          )}
-
-          <button className="w-full bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold py-4 rounded-2xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 group mt-6">
-            Get Started <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-        </form>
-
-        <p className="text-center mt-6 text-sm text-slate-300">
-          Already have an account?{' '}
-          <button
-            type="button"
-            className="text-cyan-300 font-bold hover:underline cursor-pointer"
-            onClick={() => navigate('/login')}
-          >
-            Sign In
-          </button>
-        </p>
+          <div className="mt-6">
+            <ElectionTicker
+              label="Campaign highlights"
+              items={[
+                { badge: 'Election ad', title: 'Be visible, be clear', detail: 'Simple public messaging helps voters compare candidates.', tone: 'gold' },
+                { badge: 'Turnout', title: 'Participation changes results', detail: 'Election reminders help more people complete the ballot.', tone: 'blue' },
+                { badge: 'Candidate lane', title: 'Profiles and manifestos stay readable', detail: 'Campaign information is presented without clutter.', tone: 'gold' }
+              ]}
+            />
+          </div>
+        </Card>
       </motion.div>
     </div>
   );
 };
 
-const InputGroup = ({ icon, ...props }) => (
-  <div className="relative group">
-    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-cyan-300 transition-colors">
-      {icon}
+const InfoRow = ({ icon, title, text }) => (
+  <div className="flex gap-3 rounded-2xl border border-theme bg-surface p-4">
+    <div className="mt-0.5 rounded-xl bg-[color:var(--accent)]/12 p-2 text-accent-hover-theme">{icon}</div>
+    <div>
+      <p className="font-medium text-primary-theme">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-secondary-theme">{text}</p>
     </div>
-    <input
-      {...props}
-      className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-cyan-400/30 transition-all text-white placeholder:text-slate-400"
-    />
   </div>
 );
 
-const TextAreaGroup = ({ icon, ...props }) => (
-  <div className="relative group">
-    <div className="absolute left-4 top-4 text-slate-400 group-focus-within:text-cyan-300 transition-colors">
-      {icon}
-    </div>
+const TextArea = ({ label, ...props }) => (
+  <label className="block">
+    <span className="mb-2 block text-sm font-medium text-primary-theme">{label}</span>
     <textarea
       {...props}
-      rows="3"
-      className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:ring-2 focus:ring-cyan-400/30 transition-all text-white placeholder:text-slate-400 resize-none"
+      rows={4}
+      className="w-full resize-none rounded-xl border border-theme bg-elevated px-4 py-3 text-sm text-primary-theme outline-none transition-colors placeholder:text-muted-theme focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-2)]/30"
     />
-  </div>
+  </label>
 );
 
 export default Register;

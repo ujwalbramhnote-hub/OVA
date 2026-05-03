@@ -1,19 +1,31 @@
 import React, { useState } from 'react';
-import Sidebar from './Sidebar';
-import Navbar from './Navbar';
 import { Outlet } from 'react-router-dom';
+import Sidebar from '../components/layout/Sidebar';
+import Topbar from '../components/layout/Topbar';
 
 const MainLayout = () => {
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-dark-900 flex transition-colors duration-300">
-      <Sidebar isOpen={isSidebarOpen} toggle={() => setSidebarOpen(!isSidebarOpen)} />
-      
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <Outlet />
+    <div className="bg-app min-h-screen overflow-x-hidden text-primary-theme">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {sidebarOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          aria-label="Close sidebar overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
+      <div className="min-h-screen md:pl-[280px]">
+        <Topbar onMenuToggle={() => setSidebarOpen((current) => !current)} onRefresh={() => setRefreshKey((current) => current + 1)} />
+        <main className="app-shell-main px-4 py-6 md:px-6 md:py-8">
+          <div key={refreshKey} className="mx-auto max-w-[1600px]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

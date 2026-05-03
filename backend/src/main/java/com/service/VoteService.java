@@ -4,6 +4,7 @@ import com.entity.Candidate;
 import com.entity.Role;
 import com.entity.User;
 import com.entity.Vote;
+import com.service.AuditService;
 import com.repository.CandidateRepository;
 import com.repository.UserRepository;
 import com.repository.VoteRepository;
@@ -20,6 +21,8 @@ public class VoteService {
     private UserRepository userRepository;
     @Autowired
     private CandidateRepository candidateRepository;
+    @Autowired
+    private AuditService auditService;
 
     @Transactional
     public void castVote(Long userId, Long candidateId) {
@@ -53,5 +56,14 @@ public class VoteService {
         int currentVotes = candidate.getVoteCount() == null ? 0 : candidate.getVoteCount();
         candidate.setVoteCount(currentVotes + 1);
         candidateRepository.save(candidate);
+
+        auditService.recordEventSafely(
+                "vote_cast",
+                candidate.getName(),
+                "Vote persisted successfully",
+                "success",
+                user.getEmail(),
+                user.getRole().name()
+        );
     }
 }

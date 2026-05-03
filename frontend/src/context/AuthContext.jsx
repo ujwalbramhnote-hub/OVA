@@ -5,6 +5,26 @@ const AuthContext = createContext();
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user';
 
+const safeGet = (key) => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const safeSet = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
+};
+
+const safeRemove = (key) => {
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+};
+
 const normalizeRole = (role) => {
   switch (role) {
     case 'ROLE_ADMIN':
@@ -34,13 +54,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const clearAuth = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    safeRemove(TOKEN_KEY);
+    safeRemove(USER_KEY);
     applyAuthToken(null);
   };
 
   const checkAuth = async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = safeGet(TOKEN_KEY);
     if (!token) {
       clearAuth();
       setUser(null);
@@ -56,7 +76,7 @@ export const AuthProvider = ({ children }) => {
         role: normalizeRole(response.data.role)
       };
       setUser(nextUser);
-      localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+      safeSet(USER_KEY, JSON.stringify(nextUser));
     } catch (err) {
       clearAuth();
       setUser(null);
@@ -66,16 +86,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_KEY);
+    const storedUser = safeGet(USER_KEY);
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser({ ...parsedUser, role: normalizeRole(parsedUser.role) });
       } catch {
-        localStorage.removeItem(USER_KEY);
+        safeRemove(USER_KEY);
       }
     }
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = safeGet(TOKEN_KEY);
     if (token) {
       applyAuthToken(token);
     }
@@ -98,8 +118,8 @@ export const AuthProvider = ({ children }) => {
       roles
     };
 
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+    safeSet(TOKEN_KEY, token);
+    safeSet(USER_KEY, JSON.stringify(nextUser));
     applyAuthToken(token);
     setUser(nextUser);
 

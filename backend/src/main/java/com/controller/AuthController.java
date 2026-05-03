@@ -11,6 +11,7 @@ import com.repository.UserRepository;
 import com.security.jwt.JwtUtils;
 import com.security.services.UserDetailsImpl;
 import com.service.CandidateService;
+import com.service.AuditService;
 import com.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,9 @@ public class AuthController {
 	@Autowired
 	CandidateService candidateService;
 
+	@Autowired
+	AuditService auditService;
+
 	@PostMapping("/login")
 	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
@@ -62,6 +66,15 @@ public class AuthController {
 		List<String> roles = userDetails.getAuthorities().stream()
 				.map(item -> item.getAuthority())
 				.collect(Collectors.toList());
+
+		auditService.recordEventSafely(
+				"login",
+				userDetails.getEmail(),
+				"User signed in successfully",
+				"success",
+				userDetails.getEmail(),
+				userDetails.getRole()
+		);
 
 		return ResponseEntity.ok(new JwtResponse(jwt, 
 												 userDetails.getId(), 
@@ -112,6 +125,15 @@ public class AuthController {
 		if (savedUser.getRole() == Role.CANDIDATE) {
 			candidateService.createCandidateProfile(savedUser, signUpRequest);
 		}
+
+		auditService.recordEventSafely(
+				"register",
+				savedUser.getEmail(),
+				"User registered successfully",
+				"success",
+				savedUser.getEmail(),
+				savedUser.getRole().name()
+		);
 
 		return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
 	}

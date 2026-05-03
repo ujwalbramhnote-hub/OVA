@@ -57,6 +57,7 @@ public class CandidateService {
         candidate.setDescription(request.getDescription());
         candidate.setManifesto(request.getManifesto());
         candidate.setImageUrl(request.getImageUrl());
+        candidate.setProfileImageUrl(request.getImageUrl());
         candidate.setVoteCount(0);
         return convertToCandidateDTO(candidateRepository.save(candidate));
     }
@@ -68,6 +69,7 @@ public class CandidateService {
         candidate.setDescription(candidateRequest.getDescription());
         candidate.setManifesto(candidateRequest.getManifesto());
         candidate.setImageUrl(candidateRequest.getImageUrl());
+        candidate.setProfileImageUrl(candidateRequest.getImageUrl());
         candidate.setVoteCount(0);
         return convertToCandidateDTO(candidateRepository.save(candidate));
     }
@@ -80,6 +82,7 @@ public class CandidateService {
         candidate.setDescription(candidateDetails.getDescription());
         candidate.setManifesto(candidateDetails.getManifesto());
         candidate.setImageUrl(candidateDetails.getImageUrl());
+        candidate.setProfileImageUrl(candidateDetails.getImageUrl());
         return convertToCandidateDTO(candidateRepository.save(candidate));
     }
 
@@ -113,7 +116,8 @@ public class CandidateService {
         dto.setParty(candidate.getParty());
         dto.setDescription(candidate.getDescription());
         dto.setManifesto(candidate.getManifesto());
-        dto.setImageUrl(candidate.getImageUrl());
+        dto.setImageUrl(resolveImageUrl(candidate));
+        dto.setProfileImageUrl(candidate.getProfileImageUrl());
         return dto;
     }
 
@@ -133,8 +137,16 @@ public class CandidateService {
         dto.setParty(candidate.getParty());
         dto.setDescription(candidate.getDescription());
         dto.setManifesto(candidate.getManifesto());
-        dto.setImageUrl(candidate.getImageUrl());
+        dto.setImageUrl(resolveImageUrl(candidate));
+        dto.setProfileImageUrl(candidate.getProfileImageUrl());
         dto.setTotalVotes(candidate.getVoteCount() == null ? 0 : candidate.getVoteCount());
         return dto;
+    }
+
+    private String resolveImageUrl(Candidate candidate) {
+        if (candidate.getProfileImageUrl() != null && !candidate.getProfileImageUrl().isBlank()) {
+            return candidate.getProfileImageUrl();
+        }
+        return candidate.getImageUrl();
     }
 }
